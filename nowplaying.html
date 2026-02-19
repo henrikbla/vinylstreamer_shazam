@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vinylstreamer — Now Playing</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #f5f0e8;
+    --black: #111010;
+    --rust: #c4501a;
+    --warm-gray: #8a8178;
+    --groove: #1a1814;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background-color: var(--black);
+    color: var(--cream);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Grain overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 100;
+    opacity: 0.4;
+  }
+
+  /* Cover art */
+  .cover-wrap {
+    position: relative;
+    width: 280px;
+    height: 280px;
+    margin-bottom: 48px;
+    flex-shrink: 0;
+    border-radius: 4px;
+    overflow: hidden;
+    background: var(--groove);
+    box-shadow:
+      0 2px 0 #2a2820,
+      4px 4px 0 #1a1814,
+      6px 6px 0 #141210,
+      0 24px 60px rgba(0,0,0,0.8);
+  }
+
+  .cover-wrap img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity 0.6s ease;
+    display: block;
+  }
+
+  .cover-wrap img.visible {
+    opacity: 1;
+  }
+
+  /* Vinyl label placeholder shown when no cover */
+  .cover-placeholder {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at center, #2a2620 0%, #1a1814 100%);
+  }
+
+  .cover-placeholder svg {
+    width: 80px;
+    height: 80px;
+    opacity: 0.15;
+  }
+
+  /* Info section */
+  .info {
+    text-align: center;
+    max-width: 440px;
+    padding: 0 24px;
+  }
+
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--warm-gray);
+    margin-bottom: 20px;
+    padding: 6px 14px;
+    border: 1px solid #2a2820;
+    border-radius: 20px;
+  }
+
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--warm-gray);
+    transition: background 0.3s ease;
+    flex-shrink: 0;
+  }
+
+  .status-dot.live {
+    background: var(--rust);
+    box-shadow: 0 0 8px var(--rust);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .track-artist {
+    font-size: 13px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--rust);
+    margin-bottom: 10px;
+    min-height: 1.4em;
+    transition: opacity 0.4s ease;
+  }
+
+  .track-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(24px, 5vw, 38px);
+    font-weight: 700;
+    line-height: 1.15;
+    color: var(--cream);
+    margin-bottom: 10px;
+    transition: opacity 0.4s ease;
+    min-height: 1.2em;
+  }
+
+  .track-title.detecting {
+    font-style: italic;
+    color: var(--warm-gray);
+    font-weight: 400;
+    font-size: clamp(18px, 3vw, 26px);
+  }
+
+  .track-album {
+    font-size: 12px;
+    color: var(--warm-gray);
+    font-style: italic;
+    min-height: 1.4em;
+  }
+
+  .divider {
+    width: 40px;
+    height: 1px;
+    background: #2a2820;
+    margin: 28px auto;
+  }
+
+  .meta {
+    font-size: 11px;
+    color: #3a3830;
+    letter-spacing: 0.08em;
+  }
+
+  .listeners {
+    color: var(--warm-gray);
+  }
+
+  /* Countdown bar */
+  .refresh-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    height: 2px;
+    background: var(--rust);
+    opacity: 0.4;
+    width: 100%;
+    transform-origin: left;
+    animation: shrink 30s linear infinite;
+  }
+
+  @keyframes shrink {
+    from { transform: scaleX(1); }
+    to   { transform: scaleX(0); }
+  }
+
+  /* Responsive */
+  @media (min-width: 700px) {
+    body { flex-direction: row; gap: 64px; }
+    .cover-wrap { margin-bottom: 0; }
+    .info { text-align: left; }
+    .status-pill { margin-bottom: 24px; }
+    .divider { margin: 28px 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="cover-wrap">
+  <div class="cover-placeholder">
+    <!-- Vinyl record icon -->
+    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" fill="var(--cream)">
+      <circle cx="50" cy="50" r="48" fill="none" stroke="currentColor" stroke-width="2"/>
+      <circle cx="50" cy="50" r="38" fill="none" stroke="currentColor" stroke-width="1" opacity="0.5"/>
+      <circle cx="50" cy="50" r="28" fill="none" stroke="currentColor" stroke-width="1" opacity="0.3"/>
+      <circle cx="50" cy="50" r="18" fill="none" stroke="currentColor" stroke-width="1" opacity="0.2"/>
+      <circle cx="50" cy="50" r="4" fill="currentColor"/>
+    </svg>
+  </div>
+  <img id="cover-img-a" src="" alt="Album art">
+  <img id="cover-img-b" src="" alt="Album art">
+</div>
+
+<div class="info">
+  <div class="status-pill">
+    <span class="status-dot" id="status-dot"></span>
+    <span id="status-text">Connecting...</span>
+  </div>
+
+  <div class="track-artist" id="track-artist"></div>
+  <div class="track-title" id="track-title">—</div>
+  <div class="track-album" id="track-album"></div>
+
+  <div class="divider"></div>
+
+  <div class="meta">
+    <span class="listeners" id="listeners"></span>
+  </div>
+</div>
+
+<div class="refresh-bar"></div>
+
+<script>
+  const STATS_URL  = '/status-json.xsl';
+  const COVER_URL  = '/cover.jpg';
+  const POLL_MS    = 30000;
+
+  const statusDot  = document.getElementById('status-dot');
+  const statusText = document.getElementById('status-text');
+  const titleEl    = document.getElementById('track-title');
+  const artistEl   = document.getElementById('track-artist');
+  const albumEl    = document.getElementById('track-album');
+  const listenersEl= document.getElementById('listeners');
+  const coverA     = document.getElementById('cover-img-a');
+  const coverB     = document.getElementById('cover-img-b');
+
+  let lastTitle    = null;
+  let coverVersion = 0;
+  let activeCover  = coverA;
+
+  function updateCover() {
+    coverVersion++;
+    const url  = COVER_URL + '?v=' + coverVersion;
+    const next = activeCover === coverA ? coverB : coverA;
+    const cur  = activeCover;
+
+    const img = new Image();
+    img.onload = () => {
+      // Fully preloaded — crossfade instantly with no blank frame
+      next.src = url;
+      next.classList.add('visible');
+      cur.classList.remove('visible');
+      activeCover = next;
+    };
+    // On error: do nothing, keep current cover showing
+    img.src = url;
+  }
+
+  function fadeUpdate(fn) {
+    titleEl.style.opacity  = '0';
+    artistEl.style.opacity = '0';
+    setTimeout(() => {
+      fn();
+      titleEl.style.opacity  = '1';
+      artistEl.style.opacity = '1';
+    }, 400);
+  }
+
+  async function poll() {
+    try {
+      const resp = await fetch(STATS_URL + '?t=' + Date.now());
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      const data = await resp.json();
+
+      const src       = data?.icestats?.source;
+      const source    = Array.isArray(src) ? src[0] : src;
+      const listeners = Array.isArray(src)
+        ? src.reduce((n, s) => n + (s.listeners || 0), 0)
+        : (source?.listeners ?? 0);
+      const title     = source?.title ?? '';
+
+      listenersEl.textContent = listeners + (listeners === 1 ? ' listener' : ' listeners');
+
+      if (!source) {
+        statusDot.classList.remove('live');
+        statusText.textContent = 'Stream offline';
+        fadeUpdate(() => {
+          titleEl.textContent  = '—';
+          titleEl.className    = 'track-title';
+          artistEl.textContent = '';
+          albumEl.textContent  = '';
+        });
+        return;
+      }
+
+      const isDetecting = title.startsWith('Detecting');
+      const isPaused    = title.startsWith('Paused');
+
+      if (isPaused) {
+        statusDot.classList.remove('live');
+        statusText.textContent = 'No listeners';
+        fadeUpdate(() => {
+          titleEl.textContent  = 'Paused';
+          titleEl.className    = 'track-title detecting';
+          artistEl.textContent = '';
+          albumEl.textContent  = '';
+        });
+        return;
+      }
+
+      if (isDetecting) {
+        statusDot.classList.add('live');
+        statusText.textContent = 'Identifying track...';
+        fadeUpdate(() => {
+          titleEl.textContent  = 'Detecting...';
+          titleEl.className    = 'track-title detecting';
+          artistEl.textContent = '';
+          albumEl.textContent  = '';
+        });
+        return;
+      }
+
+      // Playing — parse "Artist - Title"
+      statusDot.classList.add('live');
+      statusText.textContent = 'Live';
+
+      if (title && title !== lastTitle) {
+        lastTitle = title;
+        const dashIdx = title.indexOf(' - ');
+        const artist  = dashIdx > -1 ? title.slice(0, dashIdx) : '';
+        const track   = dashIdx > -1 ? title.slice(dashIdx + 3) : title;
+
+        fadeUpdate(() => {
+          artistEl.textContent = artist;
+          titleEl.textContent  = track;
+          titleEl.className    = 'track-title';
+          albumEl.textContent  = '';
+        });
+
+        updateCover();
+      }
+
+    } catch (e) {
+      console.error('Poll error:', e);
+      statusDot.classList.remove('live');
+      statusText.textContent = 'Error — retrying...';
+    }
+  }
+
+  poll();
+  setInterval(poll, POLL_MS);
+</script>
+</body>
+</html>
