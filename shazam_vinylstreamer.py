@@ -111,19 +111,26 @@ def update_icecast_metadata(artist: str, title: str, cover_url: str = ""):
 # ---------------------------------------------------------------------------
 
 def download_cover(url: str) -> bool:
-    """Download cover art from Shazam URL and save locally for Icecast to serve."""
+    """Download cover art from Shazam URL and save locally for Icecast to serve.
+    Writes to a temp file first then renames atomically to avoid partial reads."""
     if not url:
         return False
+    tmp_path = COVER_LOCAL_PATH + ".tmp"
     try:
         req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
         with urllib.request.urlopen(req, timeout=10) as resp:
             data = resp.read()
-        with open(COVER_LOCAL_PATH, "wb") as f:
+        with open(tmp_path, "wb") as f:
             f.write(data)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp_path, COVER_LOCAL_PATH)
         log.info(f"Cover art downloaded ({len(data)} bytes)")
         return True
     except Exception as e:
         log.warning(f"Failed to download cover art: {e}")
+        if os.path.exists(tmp_path):
+            os.unlink(tmp_path)
         return False
 
 # ---------------------------------------------------------------------------
