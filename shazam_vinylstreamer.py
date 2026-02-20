@@ -199,6 +199,19 @@ async def recognize(audio_path: str) -> dict:
         return {}
 
 # ---------------------------------------------------------------------------
+# Clear cover art
+# ---------------------------------------------------------------------------
+
+def clear_cover():
+    """Remove the local cover art file so the page shows the placeholder."""
+    try:
+        if os.path.exists(COVER_LOCAL_PATH):
+            os.remove(COVER_LOCAL_PATH)
+            log.info("Cover art cleared")
+    except Exception as e:
+        log.warning(f"Failed to clear cover art: {e}")
+
+# ---------------------------------------------------------------------------
 # Handle a recognized track — download cover and update Icecast
 # ---------------------------------------------------------------------------
 
@@ -246,6 +259,9 @@ async def main():
                         handle_track(track)
                     elif not track:
                         log.info("No match on immediate recognition")
+                        last_track = None
+                        clear_cover()
+                        update_icecast_metadata("Unknown", "", "")
             finally:
                 if os.path.exists(tmp_path):
                     os.unlink(tmp_path)
@@ -273,6 +289,9 @@ async def main():
                         log.info("Track unchanged, skipping metadata update")
                 else:
                     log.info(f"No match found — will try again in {POLL_INTERVAL}s")
+                    last_track = None
+                    clear_cover()
+                    update_icecast_metadata("Unknown", "", "")
         finally:
             if os.path.exists(tmp_path):
                 os.unlink(tmp_path)
