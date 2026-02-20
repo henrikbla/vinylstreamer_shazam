@@ -234,6 +234,7 @@ async def main():
         if prev_listeners == 0 and listeners >= 1:
             log.info("First listener detected — running immediate recognition...")
             update_icecast_metadata("Detecting...", "", "")
+            await asyncio.sleep(5)  # Let stream buffer settle before capturing
             with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
                 tmp_path = tmp.name
             try:
