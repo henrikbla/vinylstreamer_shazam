@@ -1,27 +1,15 @@
 #!/bin/bash
-
 # =============================================================================
-
 # Shazam Vinylstreamer — Installation Script
-
 # =============================================================================
-
 # Prerequisites already in place: icecast-kh, darkice
-
 # Run this script from the directory containing the files:
-
 # shazam_vinylstreamer.py
-
 # nowplaying.html
-
 # 
-
 # Usage:
-
 # chmod +x install.sh
-
 # ./install.sh
-
 # =============================================================================
 
 set -e  # Exit on any error
@@ -29,9 +17,7 @@ set -e  # Exit on any error
 echo “=== Shazam Vinylstreamer installer ===”
 
 # —————————————————————————–
-
 # 1. System dependencies
-
 # —————————————————————————–
 
 echo “”
@@ -40,9 +26,7 @@ sudo apt update
 sudo apt install -y ffmpeg python3-venv python3-pip
 
 # —————————————————————————–
-
 # 2. Python virtual environment + shazamio
-
 # —————————————————————————–
 
 echo “”
@@ -53,9 +37,7 @@ python3 -m venv /home/pi/shazam/venv
 /home/pi/shazam/venv/bin/pip install shazamio
 
 # —————————————————————————–
-
 # 3. Copy script
-
 # —————————————————————————–
 
 echo “”
@@ -64,9 +46,7 @@ cp shazam_vinylstreamer.py /home/pi/shazam/shazam_vinylstreamer.py
 chmod +x /home/pi/shazam/shazam_vinylstreamer.py
 
 # —————————————————————————–
-
 # 4. Fix permissions on Icecast web root so the pi user can write cover art
-
 # —————————————————————————–
 
 echo “”
@@ -74,19 +54,16 @@ echo “— Fixing Icecast web root permissions —”
 sudo chown pi:pi /usr/share/icecast2/web
 
 # —————————————————————————–
-
 # 5. Copy web files to Icecast web root
-
 # —————————————————————————–
 
 echo “”
 echo “— Copying web files to Icecast web root —”
 sudo cp nowplaying.html /usr/share/icecast2/web/nowplaying.html
+sudo cp nowplaying-ha.html /usr/share/icecast2/web/nowplaying-ha.html
 
 # —————————————————————————–
-
 # 6. Install and enable systemd service
-
 # —————————————————————————–
 
 echo “”
@@ -115,9 +92,7 @@ sudo systemctl enable shazam_vinylstreamer
 sudo systemctl start shazam_vinylstreamer
 
 # —————————————————————————–
-
 # Done
-
 # —————————————————————————–
 
 echo “”
