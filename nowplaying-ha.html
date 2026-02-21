@@ -83,12 +83,12 @@
   /* Info bar at bottom — fixed height */
   .info {
     flex: 0 0 auto;
-    padding: 14px 16px 12px;
+    padding: 8px 16px 6px;
     border-top: 1px solid #1e1c18;
     background: #0e0d0b;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 2px;
   }
 
   .top-row {
@@ -109,41 +109,9 @@
     transition: opacity 0.4s ease;
   }
 
-  .status-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 9px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--warm-gray);
-    white-space: nowrap;
-    flex-shrink: 0;
-  }
-
-  .status-dot {
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background: var(--warm-gray);
-    transition: background 0.3s ease;
-    flex-shrink: 0;
-  }
-
-  .status-dot.live {
-    background: var(--rust);
-    box-shadow: 0 0 6px var(--rust);
-    animation: pulse 2s ease-in-out infinite;
-  }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
-  }
-
   .track-title {
     font-family: 'Playfair Display', serif;
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 700;
     line-height: 1.2;
     color: var(--cream);
@@ -157,7 +125,7 @@
     font-style: italic;
     color: var(--warm-gray);
     font-weight: 400;
-    font-size: 15px;
+    font-size: 14px;
   }
 
   .bottom-row {
@@ -209,10 +177,6 @@
 <div class="info">
   <div class="top-row">
     <div class="track-artist" id="track-artist"></div>
-    <div class="status-pill">
-      <span class="status-dot" id="status-dot"></span>
-      <span id="status-text">Connecting...</span>
-    </div>
   </div>
   <div class="track-title" id="track-title">—</div>
   <div class="bottom-row">
@@ -226,8 +190,6 @@
   const COVER_URL = '/cover.jpg';
   const POLL_MS   = 30000;
 
-  const statusDot  = document.getElementById('status-dot');
-  const statusText = document.getElementById('status-text');
   const titleEl    = document.getElementById('track-title');
   const artistEl   = document.getElementById('track-artist');
   const listenersEl= document.getElementById('listeners');
@@ -275,28 +237,19 @@
       listenersEl.textContent = listeners + (listeners === 1 ? ' listener' : ' listeners');
 
       if (!source) {
-        statusDot.classList.remove('live');
-        statusText.textContent = 'Offline';
         fadeUpdate(() => { titleEl.textContent = '—'; titleEl.className = 'track-title'; artistEl.textContent = ''; });
         return;
       }
 
       if (title.startsWith('Paused')) {
-        statusDot.classList.remove('live');
-        statusText.textContent = 'No listeners';
         fadeUpdate(() => { titleEl.textContent = 'Paused'; titleEl.className = 'track-title detecting'; artistEl.textContent = ''; });
         return;
       }
 
       if (title.startsWith('Detecting')) {
-        statusDot.classList.add('live');
-        statusText.textContent = 'Identifying...';
         fadeUpdate(() => { titleEl.textContent = 'Detecting...'; titleEl.className = 'track-title detecting'; artistEl.textContent = ''; });
         return;
       }
-
-      statusDot.classList.add('live');
-      statusText.textContent = 'Live';
 
       if (title && title !== lastTitle) {
         lastTitle = title;
@@ -313,8 +266,6 @@
 
     } catch (e) {
       console.error('Poll error:', e);
-      statusDot.classList.remove('live');
-      statusText.textContent = 'Error...';
     }
   }
 
