@@ -202,15 +202,26 @@
 
   function updateCover() {
     coverVersion++;
-    const url  = COVER_URL + '?v=' + coverVersion;
+    tryLoadCover(coverVersion);
+  }
+
+  function tryLoadCover(version) {
+    const url  = COVER_URL + '?t=' + Date.now();
     const next = activeCover === coverA ? coverB : coverA;
     const cur  = activeCover;
-    const img  = new Image();
+
+    const img = new Image();
     img.onload = () => {
       next.src = url;
       next.classList.add('visible');
       cur.classList.remove('visible');
       activeCover = next;
+    };
+    img.onerror = () => {
+      // Keep retrying every 5s as long as this is still the current cover request
+      if (version === coverVersion) {
+        setTimeout(() => tryLoadCover(version), 5000);
+      }
     };
     img.src = url;
   }
@@ -237,16 +248,19 @@
       listenersEl.textContent = listeners + (listeners === 1 ? ' listener' : ' listeners');
 
       if (!source) {
+        lastTitle = null;
         fadeUpdate(() => { titleEl.textContent = '—'; titleEl.className = 'track-title'; artistEl.textContent = ''; });
         return;
       }
 
       if (title.startsWith('Paused')) {
+        lastTitle = null;
         fadeUpdate(() => { titleEl.textContent = 'Paused'; titleEl.className = 'track-title detecting'; artistEl.textContent = ''; });
         return;
       }
 
       if (title.startsWith('Detecting')) {
+        lastTitle = null;
         fadeUpdate(() => { titleEl.textContent = 'Detecting...'; titleEl.className = 'track-title detecting'; artistEl.textContent = ''; });
         return;
       }

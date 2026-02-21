@@ -287,7 +287,11 @@
 
   function updateCover() {
     coverVersion++;
-    const url  = COVER_URL + '?v=' + coverVersion;
+    tryLoadCover(coverVersion);
+  }
+
+  function tryLoadCover(version) {
+    const url  = COVER_URL + '?t=' + Date.now();
     const next = activeCover === coverA ? coverB : coverA;
     const cur  = activeCover;
 
@@ -297,6 +301,12 @@
       next.classList.add('visible');
       cur.classList.remove('visible');
       activeCover = next;
+    };
+    img.onerror = () => {
+      // Keep retrying every 5s as long as this is still the current cover request
+      if (version === coverVersion) {
+        setTimeout(() => tryLoadCover(version), 5000);
+      }
     };
     img.src = url;
   }
@@ -330,6 +340,7 @@
         statusDot.classList.remove('live');
         statusText.textContent = 'Stream offline';
         spotifyEl.classList.add('hidden');
+        lastTitle = null;
         fadeUpdate(() => {
           titleEl.textContent  = '—';
           titleEl.className    = 'track-title';
@@ -346,6 +357,7 @@
         statusDot.classList.remove('live');
         statusText.textContent = 'No listeners';
         spotifyEl.classList.add('hidden');
+        lastTitle = null;
         fadeUpdate(() => {
           titleEl.textContent  = 'Paused';
           titleEl.className    = 'track-title detecting';
@@ -359,6 +371,7 @@
         statusDot.classList.add('live');
         statusText.textContent = 'Identifying track...';
         spotifyEl.classList.add('hidden');
+        lastTitle = null;
         fadeUpdate(() => {
           titleEl.textContent  = 'Detecting...';
           titleEl.className    = 'track-title detecting';
